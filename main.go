@@ -58,7 +58,7 @@ func generateImageThumbnail(file *os.File) *os.File  {
 	sourcImg, err := imaging.Open(file.Name())
 	checkErr(err)
 
-	thumbnail := imaging.Thumbnail(sourcImg, 100, 100, imaging.CatmullRom)
+	thumbnail := imaging.Thumbnail(sourcImg, 200, 200, imaging.CatmullRom)
 
 	// create a new blank image
 	thumbnailImg := imaging.New(200, 200, color.NRGBA{0, 0, 0, 0})
