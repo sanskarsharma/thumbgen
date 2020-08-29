@@ -11,6 +11,8 @@ import (
     "encoding/json"
 	"bytes"
 	"log"
+	"os/exec"
+	"io"
 
 	"github.com/disintegration/imaging"
 	"github.com/gorilla/mux"
@@ -69,6 +71,31 @@ func generateImageThumbnail(file *os.File) *os.File  {
 	return tempFile
 }
 
+func generateVideoThumbnail(url string) *os.File {
+
+	tempDir , err := ioutil.TempDir("", "thumbnail*")
+	checkErr(err)
+
+	outputFilePath := tempDir + "/thumbnail.png"
+
+	cmd := `ffmpeg -i "%s" -an -q 0 -vf scale="'if(gt(iw,ih),-1,200):if(gt(iw,ih),200,-1)', crop=200:200:exact=1" -vframes 1 "%s"`
+	// ffmpeg cmd ref : https://gist.github.com/TimothyRHuertas/b22e1a252447ab97aa0f8de7c65f96b8
+	
+	cmdSubstituted := fmt.Sprintf(cmd, url, outputFilePath)
+	ffCmd := exec.Command("bash", "-c", cmdSubstituted)
+
+	// getting real error msg : https://stackoverflow.com/questions/18159704/how-to-debug-exit-status-1-error-when-running-exec-command-in-golang
+    output, err := ffCmd.CombinedOutput()
+	if err != nil {
+		log.Println(fmt.Sprint(err) + ": " + string(output))
+		checkErr(err)
+	}
+	log.Println(string(output))
+
+	outputFile, err := os.Open(outputFilePath)
+	return outputFile
+}
+
 func uploadFile(file *os.File, uploadUrl string) {
 
 	fileBytes, err := ioutil.ReadFile(file.Name())
@@ -85,6 +112,7 @@ func uploadFile(file *os.File, uploadUrl string) {
 	fmt.Println(resp.Body)
 	respBody, err := ioutil.ReadAll(resp.Body)
 	checkErr(err)
+    defer resp.Body.Close()
 	fmt.Println(string(respBody))
 
 	if resp.StatusCode != http.StatusOK {
@@ -92,7 +120,6 @@ func uploadFile(file *os.File, uploadUrl string) {
 		panic("uploading thumbnail failed") 
 	}
 
-    defer resp.Body.Close()
 }
 
 func handleThumbify(w http.ResponseWriter, r *http.Request)  {
@@ -153,17 +180,16 @@ func handleThumbify(w http.ResponseWriter, r *http.Request)  {
 		tempFile , err := ioutil.TempFile("", "download*." + extension) // '*' will be populated with a random numeric string
 		checkErr(err)
 		defer os.Remove(tempFile.Name())
-
-		respBody, err := ioutil.ReadAll(downloadResponse.Body)
-		checkErr(err)
-
-		tempFile.Write(respBody)
 		log.Println("temp file name:", tempFile.Name())
+
+		// reading response body from the GET call and directly writing it to file without keeping in memory. ref : https://stackoverflow.com/a/11693049/7314323
+		_, err = io.Copy(tempFile, downloadResponse.Body)
+		checkErr(err)
 
 		outputFile = generateImageThumbnail(tempFile)
 
 	} else if isVideo(contentType) {
-		// TODO 
+		outputFile = generateVideoThumbnail(thumbnailRequestPayload.DownloadUrl)
 	} else {
 		// raise 422 
 		w.WriteHeader(422)
@@ -174,7 +200,6 @@ func handleThumbify(w http.ResponseWriter, r *http.Request)  {
 		return
 	}
 	log.Println("thumbnail file :", outputFile.Name())
-
 	
 	// upload file 
 	// todo : raise error if upload response non 200
