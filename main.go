@@ -82,7 +82,13 @@ func generateVideoThumbnail(url string) *os.File {
 	// ffmpeg cmd ref : https://gist.github.com/TimothyRHuertas/b22e1a252447ab97aa0f8de7c65f96b8
 	
 	cmdSubstituted := fmt.Sprintf(cmd, url, outputFilePath)
-	ffCmd := exec.Command("bash", "-c", cmdSubstituted)
+
+	shellName := "ash" // for docker (using alpine image)
+	if os.Getenv("ENV") != "" && os.Getenv("ENV") == "LOCAL" {
+		shellName = "bash"
+	}
+
+	ffCmd := exec.Command(shellName, "-c", cmdSubstituted)
 
 	// getting real error msg : https://stackoverflow.com/questions/18159704/how-to-debug-exit-status-1-error-when-running-exec-command-in-golang
     output, err := ffCmd.CombinedOutput()
