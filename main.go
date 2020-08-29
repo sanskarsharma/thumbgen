@@ -25,28 +25,36 @@ func checkErr(e error) {
 }
 
 func isVideo(contentType string) bool {
-	contentTypeSplit := strings.Split(contentType, "/")
-	extension := contentTypeSplit[len(contentTypeSplit) - 1]
-	log.Println("extension = ", extension)
 
-	for _, ext := range []string{"mp4", "3gp", "mpv", "x-flv", "mov", "quicktime", "raw", "x-msvideo", "x-ms-wmv"} {
-		if extension == ext {
+	supportedContentTypes := []string{"video/mp4", "video/3gpp", "video/mpv", "video/x-flv", "video/quicktime", "video/quicktime", "video/raw", "video/x-msvideo", "video/x-ms-wmv"} // default
+	jsonString := os.Getenv("SUPPORTED_VIDEO_CONTENT_TYPES")
+	if jsonString != "" {
+		err := json.Unmarshal([]byte(jsonString), &supportedContentTypes)
+		checkErr(err)
+	}
+
+    for _, supportedContentType := range supportedContentTypes {
+        if contentType == supportedContentType {
 			return true
 		}
-	}
+    }
 	return false
 }
 
 func isImage(contentType string) bool {
-	contentTypeSplit := strings.Split(contentType, "/")
-	extension := contentTypeSplit[len(contentTypeSplit) - 1]
-	log.Println("extension = ", extension)
 
-	for _, ext := range []string{"jpeg", "jpg", "png", "gif"} {
-		if extension == ext {
+	supportedContentTypes := []string{"image/jpeg", "image/jpeg", "image/png", "image/gif", "image/bmp", "image/svg+xml", "image/tiff"} // default
+	jsonString := os.Getenv("SUPPORTED_IMAGE_CONTENT_TYPES")
+	if jsonString != "" {
+		err := json.Unmarshal([]byte(jsonString), &supportedContentTypes)
+		checkErr(err)
+	}
+
+    for _, supportedContentType := range supportedContentTypes {
+        if contentType == supportedContentType {
 			return true
 		}
-	}
+    }
 	return false
 }
 
