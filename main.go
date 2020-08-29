@@ -22,34 +22,28 @@ func checkErr(e error) {
     }
 }
 
-func downloadFile(url string) *os.File {
-
-	resp, err := http.Get(url)
-	checkErr(err)
-	defer resp.Body.Close()
-
-	fmt.Println("Response status:", resp.Status)
-	fmt.Println("response headers are: ", resp.Header.Get("content-type"))
-
-	contentType := resp.Header.Get("content-type")
+func isVideo(contentType string) bool {
 	contentTypeSplit := strings.Split(contentType, "/")
 	extension := contentTypeSplit[len(contentTypeSplit) - 1]
-	fmt.Println("extension = ", extension)
+	log.Println("extension = ", extension)
 
-	// '*' will be populated with a random numeric string
-	tempFile , err := ioutil.TempFile("", "download*." + extension)
-	checkErr(err)
-	respBody, err := ioutil.ReadAll(resp.Body)
-	checkErr(err)
-	tempFile.Write(respBody)
-
-	fmt.Println("Temp file name:", tempFile.Name())
-	return tempFile
+	for _, ext := range []string{"mp4", "3gp", "mpv", "x-flv", "mov", "quicktime", "raw", "x-msvideo", "x-ms-wmv"} {
+		if extension == ext {
+			return true
+		}
+	}
+	return false
 }
 
-func isImage(name string) bool {
-	if strings.HasSuffix(name, ".jpg") || strings.HasSuffix(name, ".jpeg")|| strings.HasSuffix(name, ".png") || strings.HasSuffix(name, ".gif") {
-		return true
+func isImage(contentType string) bool {
+	contentTypeSplit := strings.Split(contentType, "/")
+	extension := contentTypeSplit[len(contentTypeSplit) - 1]
+	log.Println("extension = ", extension)
+
+	for _, ext := range []string{"jpeg", "jpg", "png", "gif"} {
+		if extension == ext {
+			return true
+		}
 	}
 	return false
 }
@@ -101,13 +95,13 @@ func uploadFile(file *os.File, uploadUrl string) {
     defer resp.Body.Close()
 }
 
-func handleThumbify(w http.ResponseWriter, req *http.Request)  {
+func handleThumbify(w http.ResponseWriter, r *http.Request)  {
 
 	// Read body
-	body, err := ioutil.ReadAll(req.Body)
-	defer req.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	defer r.Body.Close()
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
@@ -115,28 +109,77 @@ func handleThumbify(w http.ResponseWriter, req *http.Request)  {
 	var thumbnailRequestPayload ThumbnailRequestPayload
 	err = json.Unmarshal(body, &thumbnailRequestPayload)
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		http.Error(w, err.Error(), 400)
 		return
 	}
 
-	// download file
-	file := downloadFile(thumbnailRequestPayload.DownloadUrl)
-	// defer os.Remove(file.Name())
-	fmt.Println(file.Name())
-
-	// call thumbgen for generating thumbnail
-	var outputFile *os.File 
-	if isImage(file.Name()) {
-		outputFile = generateImageThumbnail(file)
+	// check if both requried fields are present
+	if (thumbnailRequestPayload.DownloadUrl == "" || thumbnailRequestPayload.UploadUrl == "") {
+		w.WriteHeader(400)
+		json.NewEncoder(w).Encode(map[string]string{"message": "download_url or upload_url key not present in request data"})
+		return
 	}
-	fmt.Println(outputFile.Name())
 
+	// real work starts from here 
+
+	// make GET request with "Range" header to get partial content in response and check response header for content type
+	// this ^ is valid for s3 URLs only and is a workaround since HEAD requests cannot be made to s3 presigned URLs (ref : https://stackoverflow.com/a/39663152/7314323)
+
+	// make GET request and check content-type
+	downloadResponse, err := http.Get(thumbnailRequestPayload.DownloadUrl)
+	checkErr(err)
+	defer downloadResponse.Body.Close()
+	if !(downloadResponse.StatusCode >= 200 && downloadResponse.StatusCode <= 299) {
+		// raise 422 
+		w.WriteHeader(422)
+		jsonResponse, _ := json.Marshal(map[string]string{
+			"message": fmt.Sprintf("download url returned %d status code", downloadResponse.StatusCode),
+		})
+		w.Write(jsonResponse)
+		return
+	}
+
+	log.Println("Response status:", downloadResponse.Status)
+	log.Println("response headers are: ", downloadResponse.Header.Get("content-type"))
+
+	contentType := downloadResponse.Header.Get("content-type")
+	
+
+	var outputFile *os.File 
+	if isImage(contentType) {
+		contentTypeSplit := strings.Split(contentType, "/")
+		extension := contentTypeSplit[len(contentTypeSplit) - 1]
+
+		tempFile , err := ioutil.TempFile("", "download*." + extension) // '*' will be populated with a random numeric string
+		checkErr(err)
+		defer os.Remove(tempFile.Name())
+
+		respBody, err := ioutil.ReadAll(downloadResponse.Body)
+		checkErr(err)
+
+		tempFile.Write(respBody)
+		log.Println("temp file name:", tempFile.Name())
+
+		outputFile = generateImageThumbnail(tempFile)
+
+	} else if isVideo(contentType) {
+		// TODO 
+	} else {
+		// raise 422 
+		w.WriteHeader(422)
+		jsonResponse, _ := json.Marshal(map[string]string{
+			"message": "Un-supported content type",
+		})
+		w.Write(jsonResponse)
+		return
+	}
+	log.Println("thumbnail file :", outputFile.Name())
+
+	
 	// upload file 
 	// todo : raise error if upload response non 200
 	uploadFile(outputFile, thumbnailRequestPayload.UploadUrl)
 
-	// write response and return
-	// fmt.Fprintf(w, output_filepath)
 }
 
 
@@ -146,7 +189,7 @@ type ThumbnailRequestPayload struct {
 }
 
 
-func RecoveryWrapper(handler http.Handler) http.Handler {
+func recoveryMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			err := recover()
@@ -156,7 +199,6 @@ func RecoveryWrapper(handler http.Handler) http.Handler {
 				jsonBody, _ := json.Marshal(map[string]string{
 					"error": "There was an internal server error",
 				})
-				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write(jsonBody)
 			}
@@ -166,13 +208,21 @@ func RecoveryWrapper(handler http.Handler) http.Handler {
 	})
 }
 
+func contentTypeMiddleware(handler http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        w.Header().Add("Content-Type", "application/json")
+        handler.ServeHTTP(w, r)
+    })
+}
 
 func main()  {
-	m := mux.NewRouter()
-    m.Handle("/thumbify", RecoveryWrapper(http.HandlerFunc(handleThumbify))).Methods("POST")
+	router := mux.NewRouter()
+	router.Use(contentTypeMiddleware)
+	router.Use(recoveryMiddleware)
 
-    http.Handle("/", m)
+    router.HandleFunc("/thumbify", handleThumbify).Methods("POST")
+
 	log.Println("Listening...")
-	http.ListenAndServe(":2712", nil)
+	http.ListenAndServe(":2712", router)
 }
 
