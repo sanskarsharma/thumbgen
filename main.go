@@ -26,7 +26,7 @@ func checkErr(e error) {
 
 func isVideo(contentType string) bool {
 
-	supportedContentTypes := []string{"video/mp4", "video/3gpp", "video/mpv", "video/x-flv", "video/quicktime", "video/quicktime", "video/raw", "video/x-msvideo", "video/x-ms-wmv"} // default
+	supportedContentTypes := []string{"video/mp4", "video/3gpp", "video/mpv", "video/x-flv", "video/quicktime", "video/quicktime", "video/raw", "video/x-msvideo", "video/x-ms-wmv", "video/webm"} // default
 	jsonString := os.Getenv("SUPPORTED_VIDEO_CONTENT_TYPES")
 	if jsonString != "" {
 		err := json.Unmarshal([]byte(jsonString), &supportedContentTypes)
