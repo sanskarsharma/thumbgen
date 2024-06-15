@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  
+  thumbgen:
+    build: .
+    restart: unless-stopped
+    expose:  # note : this does not open port on host machine, it just exposes the port in docker compose's network. 
+      - "4499"
+    # ports:  # Use this if you need to map host's port to container.
+    #   - "4499:4499"  
+
+# Below is the configuration for using an existing docker network instead of the letting docker-compose create one by default. I use an external network to handle routing and deployment of multiple docker compose stacks on same server using traefik (https://github.com/traefik/traefik).
+# While running this docke-compose, you have 2 options
+#   1. Comment out the below 4 lines, and run this stack as usual, with `docker-compose up`
+#   2. Create a docker network with name `traefik` using command `docker network create traefik`, and move onto better things in your life.
+networks:
+  default:
+    name: traefik
+    external: true

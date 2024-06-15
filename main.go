@@ -259,5 +259,5 @@ func main() {
 	router.HandleFunc("/thumbify", handleThumbify).Methods("POST")
 
 	log.Println("Listening...")
-	http.ListenAndServe(":2712", router)
+	http.ListenAndServe(":4499", router)
 }

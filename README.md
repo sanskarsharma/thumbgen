@@ -6,18 +6,20 @@ thumbgen is a golang web-service for generating and uploading thumbnails of medi
 
 
 ## Usage
-### Running locally
+### Running on local with go
 ```bash
-git clone https://github.com/sanskarsharma/thumbgen.git
-cd thumbgen
 go run main.go
 ```
 ### Running via docker
 ```bash
-git clone https://github.com/sanskarsharma/thumbgen.git
-cd thumbgen
 docker build -t thumbgen:v-local .
-docker run -d -p 2712:2712 thumbgen:v-local
+docker run -d -p 4499:4499 thumbgen:v-local
+```
+
+### Running via docker-compose
+```bash
+# note : check docker-compose.yaml and modify as required before running this
+docker-compose up
 ```
 
 ## Contributing

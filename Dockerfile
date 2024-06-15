@@ -20,5 +20,5 @@ RUN apk add --update ffmpeg
 # copying binary built from previous stage
 WORKDIR /usr/bin
 COPY --from=builder /go/src/app/bin /go/bin
-EXPOSE 2712
+EXPOSE 4499
 ENTRYPOINT /go/bin/main-bin 
