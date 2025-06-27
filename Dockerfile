@@ -1,13 +1,12 @@
-FROM golang:1.14-alpine as builder
+FROM golang:1.14-alpine AS builder
 RUN apk --no-cache add gcc g++ make git
 WORKDIR /go/src/app
 COPY . .
 
 ENV GOOS=linux \
-    GOARCH=amd64 \
     GOBIN=$GOPATH/bin
 RUN go mod download
-RUN go build -ldflags="-s -w" -o ./bin/main-bin ./main.go
+RUN go build -ldflags="-s -w" -o ./bin/main-bin ./*.go
 
 # creating an alpine image from scratch (lightweight)
 FROM alpine:3.9

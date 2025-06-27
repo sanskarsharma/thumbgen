@@ -3,6 +3,7 @@
 ## Overview
 
 thumbgen is a golang web-service for generating and uploading thumbnails of media files.
+Demo [live here](https://thumbgen.pohawithpeanuts.com)
 
 
 ## Usage
@@ -20,6 +21,17 @@ docker run -d -p 4499:4499 thumbgen:v-local
 ```bash
 # note : check docker-compose.yaml and modify as required before running this
 docker-compose up
+```
+
+### Deploying using Clouflare {Workers + Containers}
+
+This deploys to your cloudflare account - make sure to edit/remove custom domain in [wrangler.jsonc](wrangler.jsonc) -> `routes` as needed. 
+
+```bash
+# install
+npm install
+npx wrangler deploy
+
 ```
 
 ## Contributing

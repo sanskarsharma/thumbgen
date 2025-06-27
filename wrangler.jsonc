@@ -1,0 +1,41 @@
+{
+    "name": "thumbgen-worker",
+    "main": "worker.ts",
+    "compatibility_date": "2025-05-23",
+    "compatibility_flags": [
+        "nodejs_compat"
+    ],
+    "observability": {
+        "enabled": true
+    },
+    "containers": [
+        {
+            "name": "thumbgen",
+            "image": "./Dockerfile",
+            "max_instances": 1,
+            "class_name": "ThumbgenContainer" // for ref in cloudflare worker / request handler code
+        }
+    ],
+    "durable_objects": {
+        "bindings": [
+            {
+                "class_name": "ThumbgenContainer",
+                "name": "THUMBGEN_CONTAINER"
+            }
+        ]
+    },
+    "migrations": [
+        {
+            "tag": "v1",
+            "new_sqlite_classes": [
+                "ThumbgenContainer"
+            ]
+        }
+    ],
+    "routes": [
+        {
+            "pattern": "thumbgen.pohawithpeanuts.com",  // add custom domain here, if needed
+            "custom_domain": true
+        }
+    ]
+}
