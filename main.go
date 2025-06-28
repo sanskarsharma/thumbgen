@@ -254,7 +254,7 @@ func main() {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		http.ServeFile(w, r, "public/index.html")
-	}).Methods("GET")
+	}).Methods("GET", "HEAD")
 
 	// Serve static files from public directory
 	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("public/"))))
