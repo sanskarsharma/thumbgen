@@ -244,20 +244,28 @@ func recoveryMiddleware(handler http.Handler) http.Handler {
 	})
 }
 
-func contentTypeMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		handler.ServeHTTP(w, r)
-	})
-}
-
 func main() {
 	router := mux.NewRouter()
-	router.Use(contentTypeMiddleware)
+
+	// Apply recovery middleware to all routes
 	router.Use(recoveryMiddleware)
 
-	router.HandleFunc("/thumbify", handleThumbify).Methods("POST")
+	// Serve the frontend on the root route
+	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		http.ServeFile(w, r, "public/index.html")
+	}).Methods("GET")
 
-	log.Println("Listening...")
+	// Serve static files from public directory
+	router.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("public/"))))
+
+	router.HandleFunc("/thumbify", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		handleThumbify(w, r)
+	}).Methods("POST")
+
+	log.Println("Listening on :4499...")
+	log.Println("Frontend available at: http://localhost:4499")
+	log.Println("API endpoint: http://localhost:4499/thumbify")
 	http.ListenAndServe(":4499", router)
 }

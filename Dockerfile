@@ -19,5 +19,9 @@ RUN apk add --update ffmpeg
 # copying binary built from previous stage
 WORKDIR /usr/bin
 COPY --from=builder /go/src/app/bin /go/bin
+
+# copying public directory with frontend files
+COPY --from=builder /go/src/app/public ./public
+
 EXPOSE 4499
 ENTRYPOINT /go/bin/main-bin 

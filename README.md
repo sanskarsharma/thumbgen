@@ -13,8 +13,8 @@ go run main.go
 ```
 ### Running via docker
 ```bash
-docker build -t thumbgen:v-local .
-docker run -d -p 4499:4499 thumbgen:v-local
+docker build -t thumbgen:v0 .
+docker run -d -p 4499:4499 thumbgen:v0
 ```
 
 ### Running via docker-compose

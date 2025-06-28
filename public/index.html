@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thumbgen - Thumbnail Generator</title>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #D2B48C 0%, #E6D7C3 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #4A4A4A;
+        }
+
+        .container {
+            background: #FAF7F2;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+            padding: 40px;
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid #E8E0D6;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .title {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #8B7355;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: #A68B5B;
+            font-size: 1rem;
+            margin-bottom: 16px;
+        }
+
+        .github-link {
+            display: inline-flex;
+            align-items: center;
+            color: #B8A082;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .github-link:hover {
+            color: #8B7355;
+        }
+
+        .github-link svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .label {
+            display: block;
+            font-weight: 500;
+            color: #8B7355;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E0D4C7;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            background: #FFFFFF;
+            color: #4A4A4A;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: #D2B48C;
+            background: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(210, 180, 140, 0.15);
+        }
+
+        .input.error {
+            border-color: #CD853F;
+            background: #FDF8F3;
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #A0826D 0%, #B8956F 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(160, 130, 109, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 2px solid #ffffff;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 14px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .alert-success {
+            background: #F0F8F0;
+            color: #2F5233;
+            border: 1px solid #C8E6C9;
+        }
+
+        .alert-error {
+            background: #FDF6F1;
+            color: #A0522D;
+            border: 1px solid #E8C5A0;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 32px 24px;
+                margin: 16px;
+            }
+
+            .title {
+                font-size: 1.9rem;
+            }
+
+            .subtitle {
+                font-size: 0.95rem;
+            }
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #A68B5B;
+            margin-top: 6px;
+            line-height: 1.4;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #E8E0D6;
+            color: #A68B5B;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" x-data="thumbgenApp()">
+        <div class="header">
+            <h1 class="title">Thumbgen</h1>
+            <p class="subtitle">Generate thumbnails from images and videos</p>
+            <a href="https://github.com/sanskarsharma/thumbgen" target="_blank" class="github-link">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+                View Source
+            </a>
+        </div>
+
+        <!-- Success/Error Messages -->
+        <div x-show="successMessage" x-transition class="alert alert-success" x-text="successMessage"></div>
+        <div x-show="errorMessage" x-transition class="alert alert-error" x-text="errorMessage"></div>
+
+        <form @submit.prevent="generateThumbnail()">
+            <div class="form-group">
+                <label class="label" for="downloadUrl">
+                    Download URL
+                </label>
+                <input 
+                    type="url" 
+                    id="downloadUrl"
+                    class="input"
+                    :class="{ 'error': errors.downloadUrl }"
+                    x-model="form.downloadUrl"
+                    placeholder="https://example.com/image.jpg"
+                    required
+                >
+                <p class="help-text">URL of the image or video file to generate a thumbnail from</p>
+            </div>
+
+            <div class="form-group">
+                <label class="label" for="uploadUrl">
+                    Upload URL
+                </label>
+                <input 
+                    type="url" 
+                    id="uploadUrl"
+                    class="input"
+                    :class="{ 'error': errors.uploadUrl }"
+                    x-model="form.uploadUrl"
+                    placeholder="https://example.com/upload-endpoint"
+                    required
+                >
+                <p class="help-text">URL where the generated thumbnail will be uploaded</p>
+            </div>
+
+            <button 
+                type="submit" 
+                class="btn"
+                :disabled="loading"
+            >
+                <span x-show="loading" class="spinner"></span>
+                <span x-text="loading ? 'Generating...' : 'Generate Thumbnail'"></span>
+            </button>
+        </form>
+
+        <div class="footer">
+            Built for efficient thumbnail generation
+        </div>
+    </div>
+
+    <script>
+        function thumbgenApp() {
+            return {
+                form: {
+                    downloadUrl: '',
+                    uploadUrl: ''
+                },
+                loading: false,
+                successMessage: '',
+                errorMessage: '',
+                errors: {},
+
+                async generateThumbnail() {
+                    this.clearMessages();
+                    this.loading = true;
+
+                    try {
+                        const response = await fetch('/thumbify', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                download_url: this.form.downloadUrl,
+                                upload_url: this.form.uploadUrl
+                            })
+                        });
+
+                        if (response.ok) {
+                            this.successMessage = 'Thumbnail generated and uploaded successfully!';
+                            this.resetForm();
+                        } else {
+                            const errorData = await response.json();
+                            this.errorMessage = errorData.message || 'An error occurred while generating the thumbnail.';
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        this.errorMessage = 'Network error. Please check your connection and try again.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                clearMessages() {
+                    this.successMessage = '';
+                    this.errorMessage = '';
+                    this.errors = {};
+                },
+
+                resetForm() {
+                    this.form.downloadUrl = '';
+                    this.form.uploadUrl = '';
+                }
+            }
+        }
+    </script>
+</body>
+</html> 
